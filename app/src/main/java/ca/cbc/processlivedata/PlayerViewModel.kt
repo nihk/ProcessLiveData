@@ -2,6 +2,7 @@ package ca.cbc.processlivedata
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.annotation.CallSuper
 import androidx.lifecycle.*
 
 class PlayerViewModel(
@@ -42,6 +43,7 @@ abstract class LifecycleViewModel : ViewModel(), LifecycleOwner {
         return registry
     }
 
+    @CallSuper
     override fun onCleared() {
         registry.currentState = Lifecycle.State.DESTROYED
     }
