@@ -1,35 +1,25 @@
 package ca.cbc.processlivedata
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
-import kotlinx.android.synthetic.main.fragment_player.*
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.ViewModelProvider
+import ca.cbc.processlivedata.databinding.PlayerFragmentBinding
+import com.google.android.exoplayer2.Player
 
-class PlayerFragment : Fragment() {
+class PlayerFragment : Fragment(R.layout.player_fragment) {
 
-    private val viewModel: PlayerViewModel by lazy {
-        ViewModelProviders.of(this).get(PlayerViewModel::class.java)
-    }
-
-    companion object {
-        fun create() = PlayerFragment()
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.fragment_player, container, false)
-
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-
-        viewModel.player.observe(viewLifecycleOwner, Observer {
-            player_view.player = it
-        })
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val binding = PlayerFragmentBinding.bind(view)
+        val viewModelFactory = PlayerViewModel.Factory(
+            requireContext().applicationContext,
+            ProcessLifecycleOwner.get().lifecycle
+        )
+        val viewModel = ViewModelProvider(this, viewModelFactory)
+            .get(PlayerViewModel::class.java)
+        viewModel.player.observe(viewLifecycleOwner) { player: Player? ->
+            binding.playerView.player = player
+        }
     }
 }

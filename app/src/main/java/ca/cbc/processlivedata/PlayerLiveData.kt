@@ -1,23 +1,21 @@
 package ca.cbc.processlivedata
 
 import android.content.Context
-import android.net.Uri
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
-import com.google.android.exoplayer2.ExoPlayerFactory
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
+import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.source.ExtractorMediaSource
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.SimpleExoPlayer
 
 class PlayerLiveData(
     private val appContext: Context,
-    startStop: Lifecycle,
-    destroy: Lifecycle,
+    private val lifecycle: Lifecycle,
     private val mediaUrl: String = "https://html5demos.com/assets/dizzy.mp4",
-    private val appName: String = "demo",
     contentPosition: Long = 0L,
     playWhenReady: Boolean = true
-) : MultiLifecycleObserverLiveData<Player>(startStop, destroy) {
+) : LiveData<Player>(), DefaultLifecycleObserver {
 
     // Public access for state saving
     var contentPosition = contentPosition
@@ -25,27 +23,34 @@ class PlayerLiveData(
     var playWhenReady = playWhenReady
         private set
 
-    override fun createResource(): Player {
-        val dataSourceFactory = DefaultDataSourceFactory(
-            appContext,
-            Util.getUserAgent(appContext, appName)
-        )
+    override fun onActive() {
+        lifecycle.addObserver(this)
+    }
 
-        val mediaSource = ExtractorMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(Uri.parse(mediaUrl))
-
-        return ExoPlayerFactory.newSimpleInstance(appContext).apply {
-            prepare(mediaSource)
-            playWhenReady = this@PlayerLiveData.playWhenReady
+    override fun onStart(owner: LifecycleOwner) {
+        value = SimpleExoPlayer.Builder(appContext).build().apply {
+            setMediaItem(MediaItem.fromUri(mediaUrl))
+            prepare()
             seekTo(this@PlayerLiveData.contentPosition)
+            playWhenReady = this@PlayerLiveData.playWhenReady
         }
     }
 
-    override fun tearDownResource() {
-        with(value ?: return) {
+    override fun onStop(owner: LifecycleOwner) {
+        tearDown()
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        lifecycle.removeObserver(this)
+        tearDown()
+    }
+
+    private fun tearDown() {
+        value?.run {
             this@PlayerLiveData.contentPosition = contentPosition
             this@PlayerLiveData.playWhenReady = playWhenReady
             release()
+            value = null
         }
     }
 }

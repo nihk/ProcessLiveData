@@ -1,28 +1,54 @@
 package ca.cbc.processlivedata
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.navigation.createGraph
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.fragment
+import ca.cbc.processlivedata.databinding.MainFragmentBinding
 
-class MainActivity : AppCompatActivity(), MainFragment.Listener {
+class MainActivity : AppCompatActivity(R.layout.main_activity) {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        createNavGraph()
+    }
 
-        if (savedInstanceState == null) {
-            navigateToFragment { MainFragment.create() }
+    private fun createNavGraph() {
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.navHostContainer) as NavHostFragment
+
+        navHostFragment.navController.apply {
+            graph = createGraph(
+                id = AppNavGraph.id,
+                startDestination = AppNavGraph.Destination.main
+            ) {
+                fragment<MainFragment>(AppNavGraph.Destination.main)
+                fragment<PlayerFragment>(AppNavGraph.Destination.player)
+            }
         }
     }
+}
 
-    override fun onNavigateToPlayer() {
-        navigateToFragment(true) { PlayerFragment.create() }
+class MainFragment : Fragment(R.layout.main_fragment) {
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val binding = MainFragmentBinding.bind(view)
+        binding.goToPlayer.setOnClickListener {
+            findNavController().navigate(AppNavGraph.Destination.player)
+        }
     }
+}
 
-    private fun navigateToFragment(withBackStack: Boolean = false, producer: () -> Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.container, producer())
-            .apply { if (withBackStack) addToBackStack(null) }
-            .commit()
+object AppNavGraph {
+    const val id = 1
+
+    object Destination {
+        const val main = 2
+        const val player = 3
     }
 }
